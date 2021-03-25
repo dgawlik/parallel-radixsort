@@ -26,3 +26,13 @@ test {
     maxHeapSize = "1g"
 
 }
+
+jar {
+    manifest {
+        attributes "Main-Class": "org.radix.perf.RadixSortPerformanceTest"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
