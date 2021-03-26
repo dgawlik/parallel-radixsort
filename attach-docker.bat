@@ -1,1 +1,0 @@
-docker run --rm -it --security-opt seccomp=seccomp.json radix

@@ -11,7 +11,7 @@ class RadixSortTest {
   @Test
   void chaos_test(){
     Random rnd = new Random(1);
-    int SIZE = 10;
+    int SIZE = 100;
     long[] ref = new long[SIZE];
     long[] sut = new long[SIZE];
 
