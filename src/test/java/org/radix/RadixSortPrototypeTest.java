@@ -5,7 +5,7 @@ import java.util.Random;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class RadixSortTest {
+class RadixSortPrototypeTest {
 
 
   @Test
@@ -22,9 +22,9 @@ class RadixSortTest {
     }
 
     Arrays.sort(ref);
-    RadixSort.parallelSort(sut);
+    RadixSortPrototype.parallelSort(sut);
 
-    RadixSort.printArray(sut);
+    RadixSortPrototype.printArray(sut);
 
     Assertions.assertArrayEquals(ref, sut);
   }

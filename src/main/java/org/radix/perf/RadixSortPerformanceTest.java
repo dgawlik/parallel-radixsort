@@ -2,7 +2,7 @@ package org.radix.perf;
 
 import java.util.Arrays;
 import java.util.Random;
-import org.radix.RadixSort;
+import org.radix.RadixSortPrototype;
 
 public class RadixSortPerformanceTest {
 
@@ -28,13 +28,13 @@ public class RadixSortPerformanceTest {
     }
     else if(args[0].equals("serial")){
       long rStart = System.currentTimeMillis();
-      RadixSort.parallelSort(r);
+      RadixSortPrototype.sort(r);
       long rEnd = System.currentTimeMillis();
       System.out.println("Radixsort serial: " + (rEnd - rStart) + " ms");
     }
     else if(args[0].equals("parallel")){
       long rStart = System.currentTimeMillis();
-      RadixSort.parallelSort(r);
+      RadixSortPrototype.parallelSort(r);
       long rEnd = System.currentTimeMillis();
       System.out.println("Radixsort parallel: " + (rEnd - rStart) + " ms");
     }
