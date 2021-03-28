@@ -41,7 +41,7 @@ public class Radix {
     @Override
     protected void compute() {
       for (int i = start; i < end; i++) {
-        int chunk = (int) ((arr[i] >> (radix * 8)) & 255);
+        int chunk = calculateBucket(arr[i], radix);
         counts[partNo][chunk]++;
       }
     }
@@ -57,7 +57,7 @@ public class Radix {
     @Override
     protected void compute() {
       for (int i = start; i < end; i++) {
-        int chunk = (int) ((arr[i] >> (radix * 8)) & 255);
+        int chunk = calculateBucket(arr[i], radix);
         buffer[counts[partNo][chunk]] = arr[i];
         counts[partNo][chunk]++;
       }
@@ -91,7 +91,7 @@ public class Radix {
     ForkJoinPool pool = new ForkJoinPool(4);
 
     for (int radix = 0; radix < 8; radix++) {
-      int[][] counts = new int[parts][256];
+      int[][] counts = new int[parts][512];
 
       ArrayList<ForkJoinTask<?>> tasks = new ArrayList<>();
       for (int partNo = 0; partNo < parts; partNo++) {
@@ -107,7 +107,7 @@ public class Radix {
       tasks.forEach(ForkJoinTask::join);
 
       int base = 0;
-      for (int k = 0; k <= 255; k++) {
+      for (int k = 0; k < 512; k++) {
         for (int j = 0; j < parts; j++) {
           int t = counts[j][k];
           counts[j][k] = base;
@@ -142,5 +142,13 @@ public class Radix {
       tasks.forEach(ForkJoinTask::join);
     }
     pool.shutdownNow();
+  }
+
+  private static int calculateBucket(long val, int radix) {
+    if (val < 0L) {
+      return (int) (256 - ((((~val >> (radix * 8)) + 1) & 255)));
+    } else {
+      return (int) (((val >> (radix * 8)) & 255) + 256);
+    }
   }
 }

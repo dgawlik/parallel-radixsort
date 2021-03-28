@@ -1,8 +1,8 @@
-package org.radix.perf;
+package org.proto.perf;
 
 import java.util.Arrays;
 import java.util.Random;
-import org.radix.RadixSortPrototype;
+import org.proto.RadixSortPrototype;
 
 public class RadixSortPerformanceTest {
 
