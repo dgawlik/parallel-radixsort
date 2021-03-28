@@ -1,10 +1,10 @@
 package org.radix;
 
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 public class RadixSortPrototype {
@@ -13,7 +13,7 @@ public class RadixSortPrototype {
   public static void parallelSort(long[] arr) {
     long[] output = new long[arr.length];
 
-    int MAX_PART = 1_000_000;
+    int MAX_PART = 500_000;
     int numProc = Runtime.getRuntime().availableProcessors();
     int partL = Math
         .min((int) Math.ceil(arr.length / (double) numProc), MAX_PART);
@@ -97,7 +97,6 @@ public class RadixSortPrototype {
     partL = Math.min(partL, MAX_PART);
     int parts = (int) Math.ceil(arr.length / (double) partL);
 
-    long start1 = System.currentTimeMillis();
     long[] work = new long[arr.length];
     ExecutorService worker = Executors.newFixedThreadPool(parts);
     Future[] threads = new Future[parts];
@@ -111,10 +110,7 @@ public class RadixSortPrototype {
     }
 
     barrier(parts, threads);
-    long end1 = System.currentTimeMillis();
-    System.out.println("partition " + (end1 - start1) + "ms");
 
-    long start2 = System.currentTimeMillis();
     int index = 0;
     int[] workIndices = new int[parts];
     int[] limits = new int[parts];
@@ -193,8 +189,6 @@ public class RadixSortPrototype {
       } while (backI != smallest);
     }
 
-    long end2 = System.currentTimeMillis();
-    System.out.println("merge " + (end2 - start2));
     worker.shutdownNow();
   }
 

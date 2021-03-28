@@ -8,6 +8,15 @@ public class RadixSortPerformanceTest {
 
 
   public static void main(String[] args) {
+
+    switch (args[0]) {
+      case "java" -> testJavaParallel();
+      case "serial" -> testSerial();
+      case "parallel" -> testParallel();
+    }
+  }
+
+  public static void testJavaParallel() {
     int SIZE = 20_000_000;
     Random rnd = new Random(1);
 
@@ -20,24 +29,47 @@ public class RadixSortPerformanceTest {
       r[i] = val;
     }
 
-    if(args[0].equals("java")){
-      long qStart = System.currentTimeMillis();
-      Arrays.parallelSort(q);
-      long qEnd = System.currentTimeMillis();
-      System.out.println("Java: " + (qEnd - qStart) + " ms");
+    long qStart = System.currentTimeMillis();
+    Arrays.parallelSort(q);
+    long qEnd = System.currentTimeMillis();
+    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
+  }
+
+  public static void testSerial() {
+    int SIZE = 20_000_000;
+    Random rnd = new Random(1);
+
+    long[] q = new long[SIZE];
+    long[] r = new long[SIZE];
+
+    for (int i = 0; i < SIZE; i++) {
+      long val = rnd.nextLong() >>> 1;
+      q[i] = val;
+      r[i] = val;
     }
-    else if(args[0].equals("serial")){
-      long rStart = System.currentTimeMillis();
-      RadixSortPrototype.sort(r);
-      long rEnd = System.currentTimeMillis();
-      System.out.println("Radixsort serial: " + (rEnd - rStart) + " ms");
+
+    long rStart = System.currentTimeMillis();
+    RadixSortPrototype.sort(r);
+    long rEnd = System.currentTimeMillis();
+    System.out.println("Radixsort Serial: " + (rEnd - rStart) + " ms");
+  }
+
+  public static void testParallel() {
+    int SIZE = 20_000_000;
+    Random rnd = new Random(1);
+
+    long[] q = new long[SIZE];
+    long[] r = new long[SIZE];
+
+    for (int i = 0; i < SIZE; i++) {
+      long val = rnd.nextLong() >>> 1;
+      q[i] = val;
+      r[i] = val;
     }
-    else if(args[0].equals("parallel")){
-      long rStart = System.currentTimeMillis();
-      RadixSortPrototype.parallelSort(r);
-      long rEnd = System.currentTimeMillis();
-      System.out.println("Radixsort parallel: " + (rEnd - rStart) + " ms");
-    }
+    long rStart = System.currentTimeMillis();
+    RadixSortPrototype.parallelSort(r);
+    long rEnd = System.currentTimeMillis();
+    System.out.println("Radixsort Parallel: " + (rEnd - rStart) + " ms");
   }
 
 }
