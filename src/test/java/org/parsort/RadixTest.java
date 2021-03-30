@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Random;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.proto.RadixSortPrototype;
 
 
 class RadixTest {
@@ -41,11 +40,11 @@ class RadixTest {
       q[i] = val;
       r[i] = val;
     }
-
-    long qStart = System.currentTimeMillis();
-    Arrays.parallelSort(q);
-    long qEnd = System.currentTimeMillis();
-    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
+//
+//    long qStart = System.currentTimeMillis();
+//    Arrays.parallelSort(q);
+//    long qEnd = System.currentTimeMillis();
+//    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
 
     long rStart = System.currentTimeMillis();
     Radix.parallelSort(r);

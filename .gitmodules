@@ -1,0 +1,6 @@
+[submodule "flamegraphs/flame-graph-jfr"]
+	path = flamegraphs/flame-graph-jfr
+	url = https://github.com/reidwilbur/flame-graph-jfr.git
+[submodule "flamegraphs/FlameGraph"]
+	path = flamegraphs/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph.git

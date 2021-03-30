@@ -2,6 +2,7 @@ package org.proto.perf;
 
 import java.util.Arrays;
 import java.util.Random;
+import org.parsort.Radix;
 import org.proto.RadixSortPrototype;
 
 public class RadixSortPerformanceTest {
@@ -67,7 +68,7 @@ public class RadixSortPerformanceTest {
       r[i] = val;
     }
     long rStart = System.currentTimeMillis();
-    RadixSortPrototype.parallelSort(r);
+    Radix.parallelSort(r);
     long rEnd = System.currentTimeMillis();
     System.out.println("Radixsort Parallel: " + (rEnd - rStart) + " ms");
   }
