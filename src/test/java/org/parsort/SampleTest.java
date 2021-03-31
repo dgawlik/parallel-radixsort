@@ -1,7 +1,5 @@
 package org.parsort;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.Arrays;
 import java.util.Random;
 import org.junit.jupiter.api.Assertions;
@@ -47,9 +45,9 @@ class SampleTest {
     }
 
     long qStart = System.currentTimeMillis();
-//    Arrays.parallelSort(q);
+    Arrays.sort(q);
     long qEnd = System.currentTimeMillis();
-    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
+    System.out.println("Java Serial: " + (qEnd - qStart) + " ms");
 
     long rStart = System.currentTimeMillis();
     Sample.parallelSort(r);

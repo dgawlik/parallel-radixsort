@@ -18,18 +18,18 @@ public class Sample {
     private final int parts;
     private final Random rng = new Random(1);
 
-    public PartMergeSort(long[] arr, int start, int end,
+    public PartMergeSort(long[] arr, long[] buffer, int start, int end,
         int parts) {
       this.arr = arr;
       this.start = start;
       this.end = end;
-      this.buffer = new long[end - start + 1];
+      this.buffer = buffer;
       this.parts = parts;
     }
 
     @Override
     protected void compute() {
-      if (end - start < 32) {
+      if (end - start < 10_000) {
         if (start < end) {
           Arrays.sort(arr, start, end + 1);
         }
@@ -48,7 +48,6 @@ public class Sample {
         }
 
         partitionToBuckets(arr, buffer, parts, splitters, offsets, start, end);
-        System.arraycopy(buffer, 0, arr, start, end - start + 1);
 
         List<PartMergeSort> tasks = new ArrayList<>();
         offset = 0;
@@ -56,12 +55,12 @@ public class Sample {
           int begin = this.start + offset;
           int limit = Math.min(begin + counts[i] - 1, arr.length - 1);
           offset += counts[i];
-          var task = new PartMergeSort(arr, begin, limit, parts);
+          var task = new PartMergeSort(buffer,arr, begin, limit, parts);
           tasks.add(task);
         }
 
         ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
-
+        System.arraycopy(buffer, 0, arr, start, end - start + 1);
       }
     }
 
@@ -69,7 +68,7 @@ public class Sample {
         long[] splitters, int[] offsets, int start, int end) {
       for (int i = start; i <= end; i++) {
         int k = findBucket(splitters, arr[i]);
-        buffer[offsets[k]++] = arr[i];
+        buffer[this.start+offsets[k]++] = arr[i];
       }
     }
 
@@ -102,8 +101,9 @@ public class Sample {
 
     public static void parallelSort(long[] arr) {
       int numProcessors = Runtime.getRuntime().availableProcessors();
+      long buffer[] = new long[arr.length];
 
-      PartMergeSort main = new PartMergeSort(arr, 0, arr.length - 1,
+      PartMergeSort main = new PartMergeSort(arr, buffer,0, arr.length - 1,
           numProcessors);
       main.fork().join();
     }
