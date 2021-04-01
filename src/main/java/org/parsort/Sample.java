@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveAction;
 
 public class Sample {
 
-  private static class PartMergeSort extends RecursiveAction {
+  private static class SampleSortJob extends RecursiveAction {
 
     private final long[] arr;
     private final long[] buffer;
@@ -18,7 +19,7 @@ public class Sample {
     private final int parts;
     private final Random rng = new Random(1);
 
-    public PartMergeSort(long[] arr, long[] buffer, int start, int end,
+    public SampleSortJob(long[] arr, long[] buffer, int start, int end,
         int parts) {
       this.arr = arr;
       this.start = start;
@@ -29,7 +30,7 @@ public class Sample {
 
     @Override
     protected void compute() {
-      if (end - start < 10_000) {
+      if (end - start < 2_000) {
         if (start < end) {
           Arrays.sort(arr, start, end + 1);
         }
@@ -48,19 +49,18 @@ public class Sample {
         }
 
         partitionToBuckets(arr, buffer, parts, splitters, offsets, start, end);
+        System.arraycopy(buffer, 0, arr, start, end - start + 1);
 
-        List<PartMergeSort> tasks = new ArrayList<>();
+        List<SampleSortJob> tasks = new ArrayList<>();
         offset = 0;
         for (int i = 0; i < parts; i++) {
           int begin = this.start + offset;
           int limit = Math.min(begin + counts[i] - 1, arr.length - 1);
           offset += counts[i];
-          var task = new PartMergeSort(buffer,arr, begin, limit, parts);
+          var task = new SampleSortJob(arr, buffer, begin, limit, parts);
           tasks.add(task);
         }
-
-        ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
-        System.arraycopy(buffer, 0, arr, start, end - start + 1);
+        ForkJoinTask.invokeAll(tasks);
       }
     }
 
@@ -68,7 +68,7 @@ public class Sample {
         long[] splitters, int[] offsets, int start, int end) {
       for (int i = start; i <= end; i++) {
         int k = findBucket(splitters, arr[i]);
-        buffer[this.start+offsets[k]++] = arr[i];
+        buffer[this.start + offsets[k]++] = arr[i];
       }
     }
 
@@ -99,14 +99,14 @@ public class Sample {
     }
   }
 
-    public static void parallelSort(long[] arr) {
-      int numProcessors = Runtime.getRuntime().availableProcessors();
-      long buffer[] = new long[arr.length];
+  public static void parallelSort(long[] arr) {
+    int numBranches = 10;
+    long buffer[] = new long[arr.length];
 
-      PartMergeSort main = new PartMergeSort(arr, buffer,0, arr.length - 1,
-          numProcessors);
-      main.fork().join();
-    }
-
-
+    SampleSortJob main = new SampleSortJob(arr, buffer, 0, arr.length - 1,
+        numBranches);
+    main.fork().join();
   }
+
+
+}
