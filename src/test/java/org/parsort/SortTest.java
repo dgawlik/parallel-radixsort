@@ -5,24 +5,27 @@ import java.util.Random;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-
-class RadixTest {
+class SortTest {
 
   @Test
   void chaos_test(){
     Random rnd = new Random(1);
-    int SIZE = 100;
-    long[] ref = new long[SIZE];
-    long[] sut = new long[SIZE];
+    int SIZE = 20_000_000;
+    int[] ref = new int[SIZE];
+    int[] sut = new int[SIZE];
 
     for(int i=0;i<SIZE;i++){
-      long num = rnd.nextLong() % 10000;
+      int num = rnd.nextInt();
       ref[i] = num;
       sut[i] = num;
     }
 
     Arrays.sort(ref);
-    Radix.parallelSort(sut);
+    Sort.sort(sut);
+
+//    for(int i=0;i<sut.length;i++){
+//      System.out.print(sut[i]+", ");
+//    }
 
     Assertions.assertArrayEquals(ref, sut);
   }
@@ -32,23 +35,25 @@ class RadixTest {
     int SIZE = 20_000_000;
     Random rnd = new Random(1);
 
-    long[] q = new long[SIZE];
-    long[] r = new long[SIZE];
+    int[] q = new int[SIZE];
+    int[] r = new int[SIZE];
 
     for (int i = 0; i < SIZE; i++) {
-      long val = rnd.nextLong();
+      int val = rnd.nextInt();
       q[i] = val;
       r[i] = val;
     }
-//
-//    long qStart = System.currentTimeMillis();
-//    Arrays.parallelSort(q);
-//    long qEnd = System.currentTimeMillis();
-//    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
 
     long rStart = System.currentTimeMillis();
-    Radix.parallelSort(r);
+    Sort.sort(r);
     long rEnd = System.currentTimeMillis();
-    System.out.println("Radixsort Parallel: " + (rEnd - rStart) + " ms");
+    System.out.println("Radixsort: " + (rEnd - rStart) + " ms");
+
+    long qStart = System.currentTimeMillis();
+    Arrays.parallelSort(q);
+    long qEnd = System.currentTimeMillis();
+    System.out.println("Java Parallel: " + (qEnd - qStart) + " ms");
+
   }
+
 }
