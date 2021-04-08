@@ -20,6 +20,7 @@ class SortTest {
       sut[i] = num;
     }
 
+
     Arrays.sort(ref);
     Sort.sort(sut);
 

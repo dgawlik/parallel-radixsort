@@ -2,13 +2,14 @@ package org.parsort;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinTask;
 
 public class Sort {
 
-  private static class Stat implements Comparable<Stat> {
+  static class Stat implements Comparable<Stat> {
 
     int min;
     int max;
@@ -37,64 +38,13 @@ public class Sort {
   }
 
   public static void sort(int[] arr) {
-    int L1 = 2*1024;
+    int L1 = 2 * 1024;
     int parts = (int) Math.ceil(arr.length / (double) L1);
-    ArrayList<Stat> stats = sortSegments2(arr, L1, parts);
-    Collections.sort(stats);
-    regularize(arr, parts, stats);
-    mergeSegments2(arr, L1, parts, stats);
+    sortSegments(arr, L1, parts);
+    mergeSegments(arr, L1, parts);
   }
 
-  private static void regularize(int[] arr, int parts, ArrayList<Stat> stats) {
-    long start1 = System.currentTimeMillis();
-    int[] buffer = new int[arr.length];
-    int index = 0;
-    for (int i = 0; i < parts; i++) {
-      int len = stats.get(i).end - stats.get(i).start;
-      System.arraycopy(arr, stats.get(i).start, buffer, index, len);
-      stats.get(i).start = index;
-      stats.get(i).end = index + len;
-      index += len;
-    }
-    System.arraycopy(buffer, 0, arr, 0, buffer.length);
-    long end1 = System.currentTimeMillis();
-    System.out.println("Regularize: " + (end1 - start1) + " ms");
-  }
-
-  private static void mergeSegments2(int[] arr, int L1, int parts,
-      ArrayList<Stat> stats) {
-    long start2 = System.currentTimeMillis();
-
-    int[] buffer = new int[arr.length];
-    while (stats.size() > 1) {
-      List<ForkJoinTask<Stat>> tasks = new ArrayList<>();
-      Stat last = null;
-      for (int i = 0; i < stats.size(); i += 2) {
-        if (i + 1 == stats.size()) {
-          last = stats.get(i);
-          break;
-        }
-
-        Stat left = stats.get(i).copy();
-        Stat right = stats.get(i + 1).copy();
-        tasks.add(ForkJoinTask.adapt(() -> merge2(arr, buffer, left, right)));
-
-      }
-      ArrayList<Stat> newStat = new ArrayList<>();
-      ForkJoinTask.invokeAll(tasks).forEach(t -> {
-        Stat st = t.join();
-        newStat.add(st);
-      });
-      if (last != null) {
-        newStat.add(last);
-      }
-      stats = newStat;
-    }
-    long end2 = System.currentTimeMillis();
-    System.out.println("Merge: " + (end2 - start2) + " ms");
-  }
-
-  private static ArrayList<Stat> sortSegments2(int[] arr, int L1, int parts) {
+  private static void sortSegments(int[] arr, int L1, int parts) {
     long start1 = System.currentTimeMillis();
     List<ForkJoinTask> tasks = new ArrayList<>();
     for (int i = 0; i < parts; i++) {
@@ -104,44 +54,57 @@ public class Sort {
           ForkJoinTask.adapt(() -> Arrays.sort(arr, start, end)));
     }
     ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
-    ArrayList<Stat> stats = new ArrayList<>();
-    for (int i = 0; i < parts; i++) {
-      int start = i * L1;
-      int end = Math.min((i + 1) * L1, arr.length);
-      stats.add(new Stat(arr[start], arr[end - 1], i, start, end));
-    }
     long end1 = System.currentTimeMillis();
     System.out.println("Sort: " + (end1 - start1) + " ms");
-    return stats;
   }
 
-  public static Stat merge2(int[] arr, int[] buffer, Stat statLeft,
-      Stat statRight) {
+  private static void mergeSegments(int[] arr, int L1, int parts) {
+    long start2 = System.currentTimeMillis();
 
-    int start = statLeft.start;
-    int middle = statLeft.end;
-    int end = statRight.end;
+    int[] buffer = new int[arr.length];
+    int limit = arr.length;
+    if (parts * L1 != arr.length) {
+      parts--;
+      limit = parts * L1;
+    }
+    int range = 2;
+    while (range/parts <= 1) {
+      List<ForkJoinTask<?>> tasks = new ArrayList<>();
 
-    int step = (int) Math.sqrt(end - start);
+      for (int i = 0; i < parts; i += range) {
+        if (i + (range / 2) >= parts) {
+          break;
+        }
 
-    int leftCopy = start;
-    while (leftCopy + step < middle
-        && arr[leftCopy + step] < statRight.min) {
-      leftCopy += step;
+        int left = i * L1;
+        int middle = (i + range / 2) * L1;
+        int right = Math.min((i + range) * L1, limit);
+
+        tasks.add(
+            ForkJoinTask.adapt(() -> merge(arr, buffer, left, middle, right)));
+      }
+
+      ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
+      range <<= 1;
     }
 
-    int rightCopy = end;
-    while (rightCopy - step >= middle
-        && arr[rightCopy - step] > statLeft.max) {
-      rightCopy -= step;
+
+    if (limit != arr.length) {
+      merge(arr, buffer, 0, limit, arr.length);
     }
 
-    System.arraycopy(arr, start, buffer, start, leftCopy - start);
+    long end2 = System.currentTimeMillis();
+    System.out.println("Merge: " + (end2 - start2) + " ms");
+  }
 
-    int left = leftCopy;
-    int index = leftCopy;
+
+  public static void merge(int[] arr, int[] buffer, int start, int middle,
+      int end) {
+
+    int left = start;
+    int index = start;
     int right = middle;
-    while (left < middle && right < rightCopy) {
+    while (left < middle && right < end) {
       if (arr[left] <= arr[right]) {
         buffer[index++] = arr[left++];
       } else {
@@ -153,14 +116,10 @@ public class Sort {
       buffer[index++] = arr[left++];
     }
 
-    while (right < rightCopy) {
+    while (right < end) {
       buffer[index++] = arr[right++];
     }
 
-    System.arraycopy(arr, rightCopy, buffer, index, end - rightCopy);
     System.arraycopy(buffer, start, arr, start, end - start);
-    return new Stat(Math.min(statLeft.min, statRight.min),
-        Math.max(statLeft.max, statRight.max),
-        0, statLeft.start, statRight.end);
   }
 }
