@@ -3,6 +3,7 @@ package org.parsort;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ForkJoinTask;
 
 public class Sort {
@@ -21,24 +22,46 @@ public class Sort {
       int start = i * L1;
       int end = Math.min((i + 1) * L1, arr.length);
       tasks.add(
-          ForkJoinTask.adapt(() -> Arrays.sort(arr, start, end)));
+          ForkJoinTask.adapt(() -> sortSegment(arr, start, end)));
     }
     ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
     long end1 = System.currentTimeMillis();
     System.out.println("Sort: " + (end1 - start1) + " ms");
   }
 
+  private static void sortSegment(int[] arr, int start, int end) {
+    int low = start;
+    int high = end-1;
+
+    if (low < high) {
+
+      int pivot = arr[high];
+      int i = (low - 1);
+      for (int j = low; j <= high - 1; j++) {
+        if (arr[j] < pivot) {
+          i++;
+          int t = arr[i];
+          arr[i] = arr[j];
+          arr[j] = t;
+        }
+      }
+      int t = arr[i + 1];
+      arr[i + 1] = arr[high];
+      arr[high] = t;
+
+      int limit = i + 1;
+
+      sortSegment(arr, low, limit - 1);
+      sortSegment(arr, limit + 1, high);
+    }
+  }
+
   private static void mergeSegments(int[] arr, int L1, int parts) {
     long start2 = System.currentTimeMillis();
 
     int[] buffer = new int[arr.length];
-    int limit = arr.length;
-    if (parts * L1 != arr.length) {
-      parts--;
-      limit = parts * L1;
-    }
     int range = 2;
-    while (range/parts <= 1) {
+    while (range / parts <= 1) {
       List<ForkJoinTask<?>> tasks = new ArrayList<>();
 
       for (int i = 0; i < parts; i += range) {
@@ -48,7 +71,7 @@ public class Sort {
 
         int left = i * L1;
         int middle = (i + range / 2) * L1;
-        int right = Math.min((i + range) * L1, limit);
+        int right = Math.min((i + range) * L1, arr.length);
 
         tasks.add(
             ForkJoinTask.adapt(() -> merge(arr, buffer, left, middle, right)));
@@ -56,11 +79,6 @@ public class Sort {
 
       ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
       range <<= 1;
-    }
-
-
-    if (limit != arr.length) {
-      merge(arr, buffer, 0, limit, arr.length);
     }
 
     long end2 = System.currentTimeMillis();

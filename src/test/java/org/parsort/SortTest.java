@@ -48,7 +48,7 @@ class SortTest {
     long rStart = System.currentTimeMillis();
     Sort.sort(r);
     long rEnd = System.currentTimeMillis();
-    System.out.println("Radixsort: " + (rEnd - rStart) + " ms");
+    System.out.println("Custom sort: " + (rEnd - rStart) + " ms");
 
     long qStart = System.currentTimeMillis();
     Arrays.parallelSort(q);
