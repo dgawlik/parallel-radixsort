@@ -2,40 +2,10 @@ package org.parsort;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinTask;
 
 public class Sort {
-
-  static class Stat implements Comparable<Stat> {
-
-    int min;
-    int max;
-    int index;
-    int start;
-    int end;
-
-    public Stat(int min, int max, int index, int start, int end) {
-      this.min = min;
-      this.max = max;
-      this.index = index;
-      this.start = start;
-      this.end = end;
-    }
-
-    @Override
-    public int compareTo(Stat o) {
-      int c1 = Integer.compare(this.max, o.max);
-      return c1 == 0
-          ? Integer.compare(this.min, o.min) : c1;
-    }
-
-    public Stat copy() {
-      return new Stat(this.min, this.max, this.index, this.start, this.end);
-    }
-  }
 
   public static void sort(int[] arr) {
     int L1 = 2 * 1024;
