@@ -22,7 +22,7 @@ public class Sort {
       int start = i * L1;
       int end = Math.min((i + 1) * L1, arr.length);
       tasks.add(
-          ForkJoinTask.adapt(() -> quickSort(arr, start, end-1)));
+          ForkJoinTask.adapt(() -> quickSort(arr, start, end - 1)));
     }
     ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
     long end1 = System.currentTimeMillis();
@@ -30,7 +30,17 @@ public class Sort {
   }
 
   public static void quickSort(int[] arr, int begin, int end) {
-    if (begin < end) {
+    if (end - begin < 32) {
+      for (int i = begin+1; i <= end; i++) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= begin && arr[j] > key) {
+          arr[j + 1] = arr[j];
+          j = j - 1;
+        }
+        arr[j + 1] = key;
+      }
+    } else {
       int pivot = arr[end];
       int i = (begin - 1);
 
@@ -48,7 +58,7 @@ public class Sort {
       arr[i + 1] = arr[end];
       arr[end] = swapTemp;
 
-      int partitionIndex = i+1;
+      int partitionIndex = i + 1;
 
       quickSort(arr, begin, partitionIndex - 1);
       quickSort(arr, partitionIndex + 1, end);
