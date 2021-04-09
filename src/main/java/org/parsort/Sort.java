@@ -22,39 +22,39 @@ public class Sort {
       int start = i * L1;
       int end = Math.min((i + 1) * L1, arr.length);
       tasks.add(
-          ForkJoinTask.adapt(() -> sortSegment(arr, start, end)));
+          ForkJoinTask.adapt(() -> quickSort(arr, start, end-1)));
     }
     ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
     long end1 = System.currentTimeMillis();
     System.out.println("Sort: " + (end1 - start1) + " ms");
   }
 
-  private static void sortSegment(int[] arr, int start, int end) {
-    int low = start;
-    int high = end-1;
+  public static void quickSort(int[] arr, int begin, int end) {
+    if (begin < end) {
+      int pivot = arr[end];
+      int i = (begin - 1);
 
-    if (low < high) {
-
-      int pivot = arr[high];
-      int i = (low - 1);
-      for (int j = low; j <= high - 1; j++) {
-        if (arr[j] < pivot) {
+      for (int j = begin; j < end; j++) {
+        if (arr[j] <= pivot) {
           i++;
-          int t = arr[i];
+
+          int swapTemp = arr[i];
           arr[i] = arr[j];
-          arr[j] = t;
+          arr[j] = swapTemp;
         }
       }
-      int t = arr[i + 1];
-      arr[i + 1] = arr[high];
-      arr[high] = t;
 
-      int limit = i + 1;
+      int swapTemp = arr[i + 1];
+      arr[i + 1] = arr[end];
+      arr[end] = swapTemp;
 
-      sortSegment(arr, low, limit - 1);
-      sortSegment(arr, limit + 1, high);
+      int partitionIndex = i+1;
+
+      quickSort(arr, begin, partitionIndex - 1);
+      quickSort(arr, partitionIndex + 1, end);
     }
   }
+
 
   private static void mergeSegments(int[] arr, int L1, int parts) {
     long start2 = System.currentTimeMillis();
