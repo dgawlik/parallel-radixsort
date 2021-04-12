@@ -3,6 +3,7 @@ package org.parsort;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveAction;
 
 public class Sort {
 
@@ -19,12 +20,27 @@ public class Sort {
     }
   }
 
-  private static class Merger {
+  private static class Merger extends RecursiveAction {
 
+    private final int[] source;
+    private final int[] dest;
+    private final int leftStart;
+    private final int leftEnd;
+    private final int rightStart;
+    private final int rightEnd;
 
-    public static void mergeInto(int[] source, int[] dest, int leftStart,
-        int leftEnd, int rightStart, int rightEnd) {
+    public Merger(int[] source, int[] dest, int leftStart, int leftEnd,
+        int rightStart, int rightEnd) {
+      this.source = source;
+      this.dest = dest;
+      this.leftStart = leftStart;
+      this.leftEnd = leftEnd;
+      this.rightStart = rightStart;
+      this.rightEnd = rightEnd;
+    }
 
+    @Override
+    protected void compute() {
       int left = leftStart;
       int index = leftStart;
       int right = rightStart;
@@ -191,8 +207,7 @@ public class Sort {
         if (i + (range / 2) >= parts) {
           if (level % 2 == 0) {
             System.arraycopy(arr, i * L1, buffer, i * L1, arr.length - i * L1);
-          }
-          else {
+          } else {
             System.arraycopy(buffer, i * L1, arr, i * L1, arr.length - i * L1);
           }
           break;
@@ -203,15 +218,9 @@ public class Sort {
         int right = Math.min((i + range) * L1, arr.length);
 
         if (level % 2 == 0) {
-          tasks.add(
-              ForkJoinTask
-                  .adapt(() -> Merger
-                      .mergeInto(arr, buffer, left, middle, middle, right)));
+          tasks.add(new Merger(arr, buffer, left, middle, middle, right));
         } else {
-          tasks.add(
-              ForkJoinTask
-                  .adapt(() -> Merger
-                      .mergeInto(buffer, arr, left, middle, middle, right)));
+          tasks.add(new Merger(buffer, arr, left, middle, middle, right));
         }
       }
 
