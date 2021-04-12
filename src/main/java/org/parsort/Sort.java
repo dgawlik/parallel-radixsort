@@ -19,11 +19,38 @@ public class Sort {
     }
   }
 
+  private static class Merger {
+
+
+    public static void mergeInto(int[] source, int[] dest, int leftStart,
+        int leftEnd, int rightStart, int rightEnd) {
+
+      int left = leftStart;
+      int index = leftStart;
+      int right = rightStart;
+      while (left < leftEnd && right < rightEnd) {
+        if (source[left] <= source[right]) {
+          dest[index++] = source[left++];
+        } else {
+          dest[index++] = source[right++];
+        }
+      }
+
+      while (left < leftEnd) {
+        dest[index++] = source[left++];
+      }
+
+      while (right < rightEnd) {
+        dest[index++] = source[right++];
+      }
+    }
+  }
+
   public static void sort(int[] arr) {
     int L1 = 4 * 1024;
     int parts = (int) Math.ceil(arr.length / (double) L1);
     sortSegments(arr, L1, parts);
-    mergeSegmentsByHeap(arr, L1, parts);
+    mergePairsBottomUp(arr, L1, parts);
   }
 
   private static void sortSegments(int[] arr, int L1, int parts) {
@@ -146,17 +173,28 @@ public class Sort {
   }
 
 
-  private static void mergeSegments(int[] arr, int L1, int parts) {
+  private static void mergePairsBottomUp(int[] arr, int L1, int parts) {
     long start2 = System.currentTimeMillis();
 
     int[] buffer = new int[arr.length];
+
+    System.arraycopy(arr, 0, buffer, 0, arr.length);
+
     int range = 2;
+    int level = 0;
+
     while (range / parts <= 1) {
       long start1 = System.currentTimeMillis();
       List<ForkJoinTask<?>> tasks = new ArrayList<>();
 
       for (int i = 0; i < parts; i += range) {
         if (i + (range / 2) >= parts) {
+          if (level % 2 == 0) {
+            System.arraycopy(arr, i * L1, buffer, i * L1, arr.length - i * L1);
+          }
+          else {
+            System.arraycopy(buffer, i * L1, arr, i * L1, arr.length - i * L1);
+          }
           break;
         }
 
@@ -164,44 +202,32 @@ public class Sort {
         int middle = (i + range / 2) * L1;
         int right = Math.min((i + range) * L1, arr.length);
 
-        tasks.add(
-            ForkJoinTask.adapt(() -> merge(arr, buffer, left, middle, right)));
+        if (level % 2 == 0) {
+          tasks.add(
+              ForkJoinTask
+                  .adapt(() -> Merger
+                      .mergeInto(arr, buffer, left, middle, middle, right)));
+        } else {
+          tasks.add(
+              ForkJoinTask
+                  .adapt(() -> Merger
+                      .mergeInto(buffer, arr, left, middle, middle, right)));
+        }
       }
 
       ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
       range <<= 1;
+      level++;
 
       long end1 = System.currentTimeMillis();
       System.out.println("Merge stage: " + (end1 - start1) + " ms");
     }
 
+    if (level % 2 == 1) {
+      System.arraycopy(buffer, 0, arr, 0, buffer.length);
+    }
+
     long end2 = System.currentTimeMillis();
     System.out.println("Merge: " + (end2 - start2) + " ms");
-  }
-
-
-  public static void merge(int[] arr, int[] buffer, int start, int middle,
-      int end) {
-
-    int left = start;
-    int index = start;
-    int right = middle;
-    while (left < middle && right < end) {
-      if (arr[left] <= arr[right]) {
-        buffer[index++] = arr[left++];
-      } else {
-        buffer[index++] = arr[right++];
-      }
-    }
-
-    while (left < middle) {
-      buffer[index++] = arr[left++];
-    }
-
-    while (right < end) {
-      buffer[index++] = arr[right++];
-    }
-
-    System.arraycopy(buffer, start, arr, start, end - start);
   }
 }
