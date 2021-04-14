@@ -20,7 +20,7 @@ public class Sort {
     }
   }
 
-  private static class Merger extends RecursiveAction {
+  public static class Merger extends RecursiveAction {
 
     private final int[] source;
     private final int[] dest;
@@ -28,8 +28,10 @@ public class Sort {
     private final int leftEnd;
     private final int rightStart;
     private final int rightEnd;
+    private final int destStart;
 
-    public Merger(int[] source, int[] dest, int leftStart, int leftEnd,
+    public Merger(int[] source, int[] dest, int destStart, int leftStart,
+        int leftEnd,
         int rightStart, int rightEnd) {
       this.source = source;
       this.dest = dest;
@@ -37,12 +39,13 @@ public class Sort {
       this.leftEnd = leftEnd;
       this.rightStart = rightStart;
       this.rightEnd = rightEnd;
+      this.destStart = destStart;
     }
 
     @Override
     protected void compute() {
       int left = leftStart;
-      int index = leftStart;
+      int index = destStart;
       int right = rightStart;
       while (left < leftEnd && right < rightEnd) {
         if (source[left] <= source[right]) {
@@ -62,8 +65,99 @@ public class Sort {
     }
   }
 
+  public static class ParallelSplitter {
+
+    int[] leftStarts;
+    int[] leftEnds;
+    int[] rightStarts;
+    int[] rightEnds;
+    int[] destIndices;
+
+    private final int[] arr;
+    private final int sourceLeft;
+    private final int sourceMiddle;
+    private final int sourceRight;
+    private final int cores;
+
+    public ParallelSplitter(int[] arr, int sourceLeft, int sourceMiddle,
+        int sourceRight, int cores) {
+      this.arr = arr;
+      this.sourceLeft = sourceLeft;
+      this.sourceMiddle = sourceMiddle;
+      this.sourceRight = sourceRight;
+      this.cores = cores;
+
+      this.leftStarts = new int[cores];
+      this.leftEnds = new int[cores];
+      this.rightStarts = new int[cores];
+      this.rightEnds = new int[cores];
+      this.destIndices = new int[cores];
+    }
+
+    public void compute() {
+      int L = (int) Math.ceil((sourceMiddle - sourceLeft) / (double) cores);
+
+      int middle = sourceMiddle;
+      int index = sourceLeft;
+      int left = sourceLeft;
+
+      for (int i = 0; i < cores; i++) {
+
+        int pivot;
+        int nextLeft;
+        if (left < sourceMiddle) {
+          nextLeft = Math.min(sourceLeft + (i + 1) * L, sourceMiddle);
+          pivot = arr[nextLeft - 1];
+        } else {
+          pivot = Integer.MAX_VALUE;
+          nextLeft = left;
+        }
+
+        int nextMiddle;
+        if (nextLeft == sourceMiddle) {
+          nextMiddle = sourceRight;
+        } else if (middle < sourceRight) {
+          nextMiddle = searchRightIndex(arr, pivot, middle, sourceRight - 1);
+
+          while (nextMiddle < sourceRight && arr[nextMiddle] <= pivot) {
+            nextMiddle++;
+          }
+        } else {
+          nextMiddle = middle;
+        }
+
+        leftStarts[i] = left;
+        leftEnds[i] = nextLeft;
+
+        rightStarts[i] = middle;
+        rightEnds[i] = nextMiddle;
+
+        destIndices[i] = index;
+
+        index +=
+            (leftEnds[i] - leftStarts[i]) + (rightEnds[i] - rightStarts[i]);
+        middle = nextMiddle;
+        left = nextLeft;
+      }
+    }
+
+    private int searchRightIndex(int[] arr, int pv, int l, int r) {
+      if (l == r) {
+        return l;
+      } else {
+        int m = (int) Math.ceil((l + r) / 2.0);
+        if (arr[m] > pv) {
+          return searchRightIndex(arr, pv, l, m - 1);
+        } else {
+          return searchRightIndex(arr, pv, m, r);
+        }
+      }
+    }
+
+  }
+
   public static void sort(int[] arr) {
-    int L1 = 4 * 1024;
+    int L1 = 4*1024;
     int parts = (int) Math.ceil(arr.length / (double) L1);
     sortSegments(arr, L1, parts);
     mergePairsBottomUp(arr, L1, parts);
@@ -199,17 +293,23 @@ public class Sort {
     int range = 2;
     int level = 0;
 
+    int[] source;
+    int[] target;
     while (range / parts <= 1) {
       long start1 = System.currentTimeMillis();
       List<ForkJoinTask<?>> tasks = new ArrayList<>();
 
+      if (level % 2 == 0) {
+        source = arr;
+        target = buffer;
+      } else {
+        source = buffer;
+        target = arr;
+      }
+
       for (int i = 0; i < parts; i += range) {
         if (i + (range / 2) >= parts) {
-          if (level % 2 == 0) {
-            System.arraycopy(arr, i * L1, buffer, i * L1, arr.length - i * L1);
-          } else {
-            System.arraycopy(buffer, i * L1, arr, i * L1, arr.length - i * L1);
-          }
+          System.arraycopy(source, i * L1, target, i * L1, arr.length - i * L1);
           break;
         }
 
@@ -217,10 +317,18 @@ public class Sort {
         int middle = (i + range / 2) * L1;
         int right = Math.min((i + range) * L1, arr.length);
 
-        if (level % 2 == 0) {
-          tasks.add(new Merger(arr, buffer, left, middle, middle, right));
+        if (false) {
+          tasks.add(
+              new Merger(source, target, left, left, middle, middle, right));
         } else {
-          tasks.add(new Merger(buffer, arr, left, middle, middle, right));
+          ParallelSplitter sp = new ParallelSplitter(source, left, middle,
+              right, 4);
+          sp.compute();
+          for (int j = 0; j < sp.leftStarts.length; j++) {
+            tasks.add(
+                new Merger(source, target, sp.destIndices[j], sp.leftStarts[j],
+                    sp.leftEnds[j], sp.rightStarts[j], sp.rightEnds[j]));
+          }
         }
       }
 
