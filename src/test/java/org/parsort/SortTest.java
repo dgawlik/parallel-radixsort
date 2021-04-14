@@ -24,10 +24,6 @@ class SortTest {
     Arrays.sort(ref);
     Sort.sort(sut);
 
-//    for(int i=0;i<sut.length;i++){
-//      System.out.print(sut[i]+", ");
-//    }
-
     Assertions.assertArrayEquals(ref, sut);
   }
 

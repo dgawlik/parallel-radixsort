@@ -157,9 +157,10 @@ public class Sort {
   }
 
   public static void sort(int[] arr) {
-    int L1 = 4*1024;
+    int L1 = 8 * 1024;
     int parts = (int) Math.ceil(arr.length / (double) L1);
     sortSegments(arr, L1, parts);
+//    mergeSegmentsByHeap(arr, L1, parts);
     mergePairsBottomUp(arr, L1, parts);
   }
 
@@ -211,6 +212,70 @@ public class Sort {
       quickSort(arr, begin, partitionIndex - 1);
       quickSort(arr, partitionIndex + 1, end);
     }
+  }
+
+  private static void mergePairsBottomUp(int[] arr, int L1, int parts) {
+    long start2 = System.currentTimeMillis();
+
+    int[] buffer = new int[arr.length];
+
+    System.arraycopy(arr, 0, buffer, 0, arr.length);
+
+    int range = 2;
+    int level = 0;
+
+    int[] source;
+    int[] target;
+    while (range / parts <= 1) {
+      long start1 = System.currentTimeMillis();
+      List<ForkJoinTask<?>> tasks = new ArrayList<>();
+
+      if (level % 2 == 0) {
+        source = arr;
+        target = buffer;
+      } else {
+        source = buffer;
+        target = arr;
+      }
+
+      for (int i = 0; i < parts; i += range) {
+        if (i + (range / 2) >= parts) {
+          System.arraycopy(source, i * L1, target, i * L1, arr.length - i * L1);
+          break;
+        }
+
+        int left = i * L1;
+        int middle = (i + range / 2) * L1;
+        int right = Math.min((i + range) * L1, arr.length);
+
+//          tasks.add(
+//              new Merger(source, target, left, left, middle, middle, right));
+
+        ParallelSplitter sp = new ParallelSplitter(source, left, middle,
+            right, 4);
+        sp.compute();
+        for (int j = 0; j < sp.leftStarts.length; j++) {
+          tasks.add(
+              new Merger(source, target, sp.destIndices[j], sp.leftStarts[j],
+                  sp.leftEnds[j], sp.rightStarts[j], sp.rightEnds[j]));
+        }
+        
+      }
+
+      ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
+      range <<= 1;
+      level++;
+
+      long end1 = System.currentTimeMillis();
+      System.out.println("Merge stage: " + (end1 - start1) + " ms");
+    }
+
+    if (level % 2 == 1) {
+      System.arraycopy(buffer, 0, arr, 0, buffer.length);
+    }
+
+    long end2 = System.currentTimeMillis();
+    System.out.println("Merge: " + (end2 - start2) + " ms");
   }
 
   private static void mergeSegmentsByHeap(int[] arr, int L1, int parts) {
@@ -282,69 +347,4 @@ public class Sort {
     }
   }
 
-
-  private static void mergePairsBottomUp(int[] arr, int L1, int parts) {
-    long start2 = System.currentTimeMillis();
-
-    int[] buffer = new int[arr.length];
-
-    System.arraycopy(arr, 0, buffer, 0, arr.length);
-
-    int range = 2;
-    int level = 0;
-
-    int[] source;
-    int[] target;
-    while (range / parts <= 1) {
-      long start1 = System.currentTimeMillis();
-      List<ForkJoinTask<?>> tasks = new ArrayList<>();
-
-      if (level % 2 == 0) {
-        source = arr;
-        target = buffer;
-      } else {
-        source = buffer;
-        target = arr;
-      }
-
-      for (int i = 0; i < parts; i += range) {
-        if (i + (range / 2) >= parts) {
-          System.arraycopy(source, i * L1, target, i * L1, arr.length - i * L1);
-          break;
-        }
-
-        int left = i * L1;
-        int middle = (i + range / 2) * L1;
-        int right = Math.min((i + range) * L1, arr.length);
-
-        if (false) {
-          tasks.add(
-              new Merger(source, target, left, left, middle, middle, right));
-        } else {
-          ParallelSplitter sp = new ParallelSplitter(source, left, middle,
-              right, 4);
-          sp.compute();
-          for (int j = 0; j < sp.leftStarts.length; j++) {
-            tasks.add(
-                new Merger(source, target, sp.destIndices[j], sp.leftStarts[j],
-                    sp.leftEnds[j], sp.rightStarts[j], sp.rightEnds[j]));
-          }
-        }
-      }
-
-      ForkJoinTask.invokeAll(tasks).forEach(ForkJoinTask::join);
-      range <<= 1;
-      level++;
-
-      long end1 = System.currentTimeMillis();
-      System.out.println("Merge stage: " + (end1 - start1) + " ms");
-    }
-
-    if (level % 2 == 1) {
-      System.arraycopy(buffer, 0, arr, 0, buffer.length);
-    }
-
-    long end2 = System.currentTimeMillis();
-    System.out.println("Merge: " + (end2 - start2) + " ms");
-  }
 }
